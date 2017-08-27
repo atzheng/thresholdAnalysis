@@ -1,14 +1,14 @@
-Package: threshold_analysis
-Title: threshold_analysis
+Package: ThresholdAnalysis
+Title: ThresholdAnalysis
 Version: 0.1
 Authors@R: "Andrew Zheng <azheng92@gmail.com> [aut, cre]"
 Description: What the package does (one paragraph)
 Depends: R (>= 3.0.2)
 License: What license is it under?
 LazyData: true
-Imports: 
-	data.table
-Suggests: 
-	rPython,
-	parallel,
+Imports:
+    data.table
+Suggests:
+    rPython,
+    parallel,
     testthat

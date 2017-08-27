@@ -8,15 +8,20 @@
 #' <noncategorizing variables>
 #' @param min.cluster.size The minimum number of data points in any
 #' cluster, as a proportion of the total number of data points.
-threshold.analysis <- function(data, formula, min.cluster.size = 0.2){
+threshold.analysis <- function(data,
+                               formula,
+                               min.cluster.size = 0.2,
+                               num.thresholds = 1,
+                               parallel = FALSE){
     if(!is.data.table(data))
         data <- as.data.table(data)
 
     cat.var <- all.vars(formula)[1]
-    data.cat.var <- data[, cat.var, with = FALSE]
+    data.cat.var <- data[, cat.var, with = FALSE][[1]]
     cat.cdf <- inv.cdf(data.cat.var)
     candidate.thresholds <- (
-        cat.cdf[cum.pct >= 0.2 & cum.pct <= 0.8, x])
+        cat.cdf[cum.pct >= min.cluster.size
+                & cum.pct <= (1 - min.cluster.size), x])
 
     metrics <- thresholding.metrics(
         data,
@@ -27,7 +32,8 @@ threshold.analysis <- function(data, formula, min.cluster.size = 0.2){
             separation = function(x.A, x.B)
                 separation.pdf(x.A, x.B, density.fn = function(x)
                     density(x, bw = 3)),
-            anomaly = anomaly.pdf))
+            anomaly = anomaly.pdf),
+        parallel = parallel)
 
     weighted.thresholds(
         metrics[, threshold],
@@ -148,12 +154,21 @@ weighted.thresholds <- function(thresholds,
 #' properly; in the near future, it should be possible to use
 #' rPython to interface directly with the Python code instead.
 optimize.over.lambdas <- function(thresholds, f1, f2){
+    expand.fname <- function(fname){
+        system.file('src', fname, package = 'ThresholdAnalysis')
+    }
     write.csv(data.frame(t = thresholds, f1 = f1, f2 = f2),
-              file = 'tmp_in.csv',
+              file = expand.fname('tmp_in.csv'),
               row.names = FALSE)
-    system("python2.7 lp_optimizer.py tmp_in.csv tmp_out.csv")
-    return_val <- fread('tmp_out.csv')
-#    system("rm tmp_in.csv tmp_out.csv")
+    syscmd <- paste("python2.7",
+                    expand.fname("lp_optimizer.py"),
+                    expand.fname("tmp_in.csv"),
+                    expand.fname("tmp_out.csv"))
+    system(syscmd)
+    return_val <- fread(expand.fname('tmp_out.csv'))
+    ## system(paste("rm",
+    ##              expand.fname("tmp_in.csv"),
+    ##              expand.fname("tmp_out.csv")))
     return_val
 }
 
